@@ -2720,11 +2720,11 @@
     function normalizeWorkCenterRole(rawWc) {
       if (!rawWc) return 'C01';
       const upper = String(rawWc).toUpperCase().trim();
-      if (upper.includes('CQTEX') || upper.includes('TECH')) return 'Tech';
       if (upper.includes('C01')) return 'C01';
       if (upper.includes('C02')) return 'C02';
       if (upper.includes('C03')) return 'C03';
       if (upper.includes('G01')) return 'G01';
+      if (upper.includes('CQTEX')) return 'Tech';
       return 'C01';
     }
 
@@ -2822,7 +2822,10 @@
       let isExt = false;
       let extName = rowObj.extVendor || '';
       let overrideRole = null;
-      if (combinedText.includes('CQTEX') || combinedText.includes('TECH')) {
+      // Do NOT check 'TECH' in general text/description because OT inspections are titled 'Tech Insp'!
+      // Only match CQTex if present in the contractor / vendor column.
+      const vendorUpper = String(rowObj.extVendor || '').toUpperCase();
+      if (vendorUpper.includes('CQTEX')) {
         overrideRole = 'Tech';
       } else if (opts.detectExt) {
         if (combinedText.includes('GTA')) {
@@ -3701,6 +3704,13 @@
       })) : [];
       let roleNorm = MN28_ROLES.includes(t.role) ? t.role : normalizeWorkCenterRole(t.role);
       if (roleNorm === 'CQTex') roleNorm = 'Tech';
+      // Auto-heal tasks mistakenly assigned 'Tech' role because description contained 'Tech Insp'
+      if (roleNorm === 'Tech' && t.workCenterRaw && !/CQTEX/i.test(t.workCenterRaw)) {
+        const trueRole = normalizeWorkCenterRole(t.workCenterRaw);
+        if (trueRole && trueRole !== 'Tech') {
+          roleNorm = trueRole;
+        }
+      }
       const cleanTags = Array.isArray(t.tags)
         ? t.tags.filter(tg => !/^PM0[123]$/i.test(tg))
         : [];
