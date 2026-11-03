@@ -499,6 +499,20 @@
           <div id="filterTagBar" class="flex items-center gap-1 overflow-x-auto pb-0.5 w-full"></div>
         </div>
 
+        <!-- DUPLICATE JOBS DETECTED BANNER -->
+        <div id="duplicateAlertBanner" class="hidden mb-2.5 p-2.5 rounded-2xl bg-amber-50 border border-amber-300 flex items-center justify-between gap-2 text-xs">
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="text-base shrink-0">⚠️</span>
+            <div class="truncate">
+              <p id="duplicateCountText" class="font-bold text-amber-950 truncate">Duplicate jobs detected</p>
+              <p class="text-[10px] text-amber-800">Recurring SAP orders or identical jobs in swing</p>
+            </div>
+          </div>
+          <button id="bannerCleanDuplicatesBtn" type="button" class="px-2.5 py-1 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-[11px] shrink-0 transition">
+            Remove Duplicates
+          </button>
+        </div>
+
         <ul id="taskList" class="space-y-2" aria-label="Work to-do list"></ul>
 
         <div id="emptyState" class="hidden text-center py-8 px-4">
@@ -1857,7 +1871,7 @@
               </label>
 
               <label class="flex items-center gap-2 cursor-pointer">
-                <input id="impOptCollapseDailyOrder" type="checkbox" class="w-4 h-4 accent-amber-500 rounded" />
+                <input id="impOptCollapseDailyOrder" type="checkbox" checked class="w-4 h-4 accent-amber-500 rounded" />
                 <span class="font-semibold text-slate-700 text-primary-adaptive">Collapse daily recurring <code class="font-mono">Order</code> across Wed–Tue into first scheduled day only</span>
               </label>
 
@@ -1973,7 +1987,15 @@
                   <p class="font-bold text-slate-800 text-primary-adaptive text-[11px]">Show Starred Favorites on Every Day</p>
                   <p class="text-[10px] text-slate-400">Keep starred watch-list jobs visible regardless of selected day tab</p>
                 </div>
-                <input id="settingShowFavoritesEveryDay" type="checkbox" checked class="w-4 h-4 accent-amber-500 rounded" />
+                <input id="settingShowFavoritesEveryDay" type="checkbox" class="w-4 h-4 accent-amber-500 rounded" />
+              </label>
+
+              <label class="flex items-center justify-between gap-2 cursor-pointer pt-2 border-t border-slate-200/70">
+                <div>
+                  <p class="font-bold text-slate-800 text-primary-adaptive text-[11px]">Carry Over Incomplete Jobs to Later Days</p>
+                  <p class="text-[10px] text-slate-400">Keep unfinished jobs from past days visible on later day tabs (Default: OFF for clean daily schedule)</p>
+                </div>
+                <input id="settingCarryOverUncompleted" type="checkbox" class="w-4 h-4 accent-amber-500 rounded" />
               </label>
             </div>
 
@@ -3602,7 +3624,8 @@
       extraDaysCount: 0,
       myActiveRole: 'C01',
       taskListSortOrder: 'fav_prio_uncomp',
-      showFavoritesEveryDay: true,
+      showFavoritesEveryDay: false,
+      carryOverUncompleted: false,
       listShowOrderNo: true,
       listShowNotifNo: true,
       listShowLocation: true,
@@ -3633,7 +3656,7 @@
         detectExt: true,
         syncSwingDate: true,
         mergeSameDayOrder: true,
-        collapseDailyOrder: false,
+        collapseDailyOrder: true,
         funcLocInNotes: false
       }
     };
@@ -4268,8 +4291,26 @@
           if (day !== 0) {
             const isFavEverywhere = Boolean(appSettings.showFavoritesEveryDay && t.isFavorite);
             const effectiveDay = t.completed ? (t.completedDay || t.day || 1) : t.day;
-            const matchesDayOrCarried = effectiveDay === day || (!t.completed && (t.day === 0 || t.day < day));
-            if (!matchesDayOrCarried && !isFavEverywhere) return false;
+
+            // Direct scheduled day match
+            if (effectiveDay === day) return true;
+
+            // Optional carry-over of uncompleted tasks from earlier days (if enabled in Settings)
+            if (appSettings.carryOverUncompleted && !t.completed && t.day > 0 && t.day < day) {
+              // Avoid duplicate if today already has a task with this order number
+              if (t.orderNumber && tasks.some(other => other.orderNumber === t.orderNumber && other.day === day)) {
+                return false;
+              }
+              return true;
+            }
+
+            // Optional floating Any-Day tasks on Day 1
+            if (t.day === 0 && day === 1) return true;
+
+            // Optional favorite everywhere
+            if (isFavEverywhere) return true;
+
+            return false;
           }
         }
         if (tagFilter === 'FOLLOW_UP') {
@@ -5291,8 +5332,22 @@
       splash.classList.toggle('hidden', tasks.length > 0 || dismissed);
     }
 
+    function updateDuplicateAlertBanner() {
+      const banner = document.getElementById('duplicateAlertBanner');
+      if (!banner) return;
+      const dups = findDuplicateTasks(true);
+      if (dups.size > 0) {
+        banner.classList.remove('hidden');
+        const countEl = document.getElementById('duplicateCountText');
+        if (countEl) countEl.textContent = `${dups.size} duplicate job(s) detected across your swing`;
+      } else {
+        banner.classList.add('hidden');
+      }
+    }
+
     function renderTasks() {
       updateEmptySplash();
+      updateDuplicateAlertBanner();
       const totalDays = getTotalSwingDays();
       if (selectedViewDay > totalDays) selectedViewDay = totalDays;
 
@@ -5426,6 +5481,15 @@
           doneBadge.className = 'scalable-badge text-[10px] font-bold px-1.5 py-0.5 rounded-lg bg-emerald-100 text-emerald-800';
           doneBadge.textContent = '✓ Completed';
           metaRow.appendChild(doneBadge);
+        }
+
+        // Carried-over badge from prior day (if carry-over was enabled)
+        if (selectedViewDay !== 0 && task.day > 0 && task.day < selectedViewDay && !task.completed) {
+          const fromInfo = getDayInfo(task.day);
+          const carriedBadge = document.createElement('span');
+          carriedBadge.className = 'scalable-badge text-[10px] font-bold px-1.5 py-0.5 rounded-lg bg-amber-100 text-amber-900 border border-amber-300';
+          carriedBadge.textContent = `↩ From ${fromInfo.short}`;
+          metaRow.appendChild(carriedBadge);
         }
 
         // Short PM0 Badge (Auto-parsed here, never in tags!)
@@ -6338,23 +6402,51 @@
       if (fn) fn.textContent = `SAPerior_Backup_${new Date().toISOString().slice(0, 10)}.md`;
     }
 
-    function findDuplicateTasks() {
+    function findDuplicateTasks(acrossDays = true) {
       const score = t => (t.completed ? 100 : 0) + (t.notes ? 10 : 0) + (t.attachments ? t.attachments.length : 0) + (Number(t.actualWork) || 0);
       const groups = new Map();
       tasks.forEach(t => {
-        const key = t.orderNumber
-          ? `o:${t.orderNumber}|${t.activityNumber || ''}`
-          : `t:${(t.title || '').trim().toLowerCase()}|${t.day}|${t.role}`;
+        let key = '';
+        if (t.orderNumber && String(t.orderNumber).trim()) {
+          const ord = String(t.orderNumber).trim();
+          key = acrossDays
+            ? `ord:${ord}`
+            : `ord:${ord}|act:${t.activityNumber || ''}|day:${t.day}`;
+        } else {
+          const title = (t.title || '').trim().toLowerCase();
+          key = acrossDays
+            ? `title:${title}|role:${t.role}`
+            : `title:${title}|day:${t.day}|role:${t.role}`;
+        }
         if (!groups.has(key)) groups.set(key, []);
         groups.get(key).push(t);
       });
       const remove = new Set();
       groups.forEach(list => {
         if (list.length < 2) return;
+        // Keep the task with the most progress (completed, notes, photos, hours)
         const keep = list.slice().sort((a, b) => score(b) - score(a))[0];
         list.forEach(t => { if (t !== keep) remove.add(t.id); });
       });
       return remove;
+    }
+
+    function cleanupDuplicatesWithConfirm(acrossDays = true) {
+      const remove = findDuplicateTasks(acrossDays);
+      if (remove.size === 0) {
+        showCompletedToastMessage('✓ No duplicate jobs found.');
+        return;
+      }
+      const msg = acrossDays
+        ? `Found ${remove.size} duplicate job(s) (recurring SAP orders or identical jobs across days).\n\nRemove them?\n\nThe copy with the most progress (completed / notes / photos / hours) will be kept.`
+        : `Found ${remove.size} duplicate job(s) on the same day.\n\nRemove them?`;
+      if (!confirm(msg)) return;
+      recordAutoSnapshot('Before Remove Duplicates');
+      tasks = tasks.filter(t => !remove.has(t.id));
+      saveState('Duplicates removed');
+      renderTasks();
+      refreshDataStatusLine();
+      showCompletedToastMessage(`🧬 Removed ${remove.size} duplicate job(s)!`);
     }
 
     function openBackupRestoreModal() {
@@ -6537,7 +6629,9 @@
       const sortSel = document.getElementById('settingTaskListSortOrder');
       if (sortSel) sortSel.value = appSettings.taskListSortOrder || 'fav_prio_uncomp';
       const favChk = document.getElementById('settingShowFavoritesEveryDay');
-      if (favChk) favChk.checked = appSettings.showFavoritesEveryDay !== false;
+      if (favChk) favChk.checked = Boolean(appSettings.showFavoritesEveryDay);
+      const carryChk = document.getElementById('settingCarryOverUncompleted');
+      if (carryChk) carryChk.checked = Boolean(appSettings.carryOverUncompleted);
       updateBonusCountdown();
       startBonusCountdownTimer();
       renderSettingsTagDropdown();
@@ -8456,17 +8550,22 @@
     }
 
     // Clean up & reset
-    document.getElementById('removeDuplicatesBtn').addEventListener('click', () => {
-      const remove = findDuplicateTasks();
-      if (remove.size === 0) { showBackupFeedback('✓ No duplicate jobs found.'); return; }
-      if (!confirm(`Found ${remove.size} duplicate job(s) (same SAP order + activity). Remove them?\n\nThe copy with the most progress (completed / notes / photos / hours) is kept.`)) return;
-      recordAutoSnapshot('Before Remove Duplicates');
-      tasks = tasks.filter(t => !remove.has(t.id));
-      saveState('Duplicates removed');
-      renderTasks();
-      refreshDataStatusLine();
-      showBackupFeedback(`🧬 Removed ${remove.size} duplicate job(s).`);
-    });
+    const bannerCleanBtn = document.getElementById('bannerCleanDuplicatesBtn');
+    if (bannerCleanBtn) {
+      bannerCleanBtn.addEventListener('click', () => cleanupDuplicatesWithConfirm(true));
+    }
+    const removeDupsBtn = document.getElementById('removeDuplicatesBtn');
+    if (removeDupsBtn) {
+      removeDupsBtn.addEventListener('click', () => cleanupDuplicatesWithConfirm(true));
+    }
+    const carryOverToggleEl = document.getElementById('settingCarryOverUncompleted');
+    if (carryOverToggleEl) {
+      carryOverToggleEl.addEventListener('change', (e) => {
+        appSettings.carryOverUncompleted = e.target.checked;
+        saveState();
+        renderTasks();
+      });
+    }
     document.getElementById('clearAllDataBtn').addEventListener('click', () => {
       if (tasks.length > 0 && confirm('Download a backup file first? (Recommended)\n\nOK = download backup, Cancel = skip')) {
         triggerFileDownload(`SAPerior_Backup_${new Date().toISOString().slice(0, 10)}.md`, buildFullBackupMarkdown(), 'text/markdown;charset=utf-8');
