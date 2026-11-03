@@ -1871,8 +1871,8 @@
               </label>
 
               <label class="flex items-center gap-2 cursor-pointer">
-                <input id="impOptCollapseDailyOrder" type="checkbox" checked class="w-4 h-4 accent-amber-500 rounded" />
-                <span class="font-semibold text-slate-700 text-primary-adaptive">Collapse daily recurring <code class="font-mono">Order</code> across Wed–Tue into first scheduled day only</span>
+                <input id="impOptCollapseDailyOrder" type="checkbox" class="w-4 h-4 accent-amber-500 rounded" />
+                <span class="font-semibold text-slate-700 text-primary-adaptive">Collapse identical recurring <code class="font-mono">Order</code> &amp; <code class="font-mono">Activity</code> across Wed–Tue into first scheduled day only (Off by default: keeps 0010, 0020, etc. on their scheduled days)</span>
               </label>
 
               <label class="flex items-center gap-2 cursor-pointer">
@@ -2942,7 +2942,8 @@
 
       rawJobs.forEach(job => {
         if (opts.collapseDailyOrder && job.orderNumber) {
-          const key = `DAILY_${job.orderNumber}_${job.role}`;
+          // Only collapse if both Order AND Activity are identical; different activities (0010, 0020) are separate daily tasks
+          const key = `DAILY_${job.orderNumber}_${job.activityNumber || ''}_${job.role}`;
           if (groupMap.has(key)) {
             const existing = groupMap.get(key);
             if (job.activityNumber && !existing.activities.includes(job.activityNumber)) {
@@ -3656,7 +3657,7 @@
         detectExt: true,
         syncSwingDate: true,
         mergeSameDayOrder: true,
-        collapseDailyOrder: true,
+        collapseDailyOrder: false,
         funcLocInNotes: false
       }
     };
@@ -4297,8 +4298,12 @@
 
             // Optional carry-over of uncompleted tasks from earlier days (if enabled in Settings)
             if (appSettings.carryOverUncompleted && !t.completed && t.day > 0 && t.day < day) {
-              // Avoid duplicate if today already has a task with this order number
-              if (t.orderNumber && tasks.some(other => other.orderNumber === t.orderNumber && other.day === day)) {
+              // Avoid duplicate if today already has a task with this order number AND activity number
+              if (t.orderNumber && tasks.some(other =>
+                other.orderNumber === t.orderNumber &&
+                (other.activityNumber || '') === (t.activityNumber || '') &&
+                other.day === day
+              )) {
                 return false;
               }
               return true;
@@ -5500,11 +5505,12 @@
         prioBadge.textContent = prioInfo.code;
         metaRow.appendChild(prioBadge);
 
-        // Separate Order # Badge on Main Page (if enabled in settings)
+        // Separate Order # and Activity # Badge on Main Page (if enabled in settings)
         if (appSettings.listShowOrderNo && task.orderNumber) {
           const ordBadge = document.createElement('span');
           ordBadge.className = 'scalable-badge text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-lg bg-slate-100 text-slate-800 border border-slate-300';
-          ordBadge.textContent = `Ord #${task.orderNumber}`;
+          const actPart = task.activityNumber ? ` • Act ${task.activityNumber}` : '';
+          ordBadge.textContent = `Ord #${task.orderNumber}${actPart}`;
           metaRow.appendChild(ordBadge);
         }
 
@@ -6407,16 +6413,20 @@
       const groups = new Map();
       tasks.forEach(t => {
         let key = '';
-        if (t.orderNumber && String(t.orderNumber).trim()) {
-          const ord = String(t.orderNumber).trim();
+        const ord = t.orderNumber ? String(t.orderNumber).trim() : '';
+        const act = t.activityNumber ? String(t.activityNumber).trim() : '';
+        const title = (t.title || '').trim().toLowerCase();
+
+        if (ord) {
+          // Different activity numbers (e.g. 0010, 0020, 0030) are separate batched daily tasks, NEVER duplicates.
+          // They are only duplicates if BOTH Order # AND Activity # match!
           key = acrossDays
-            ? `ord:${ord}`
-            : `ord:${ord}|act:${t.activityNumber || ''}|day:${t.day}`;
+            ? `ord:${ord}|act:${act}`
+            : `ord:${ord}|act:${act}|day:${t.day}`;
         } else {
-          const title = (t.title || '').trim().toLowerCase();
           key = acrossDays
-            ? `title:${title}|role:${t.role}`
-            : `title:${title}|day:${t.day}|role:${t.role}`;
+            ? `title:${title}|act:${act}|role:${t.role}`
+            : `title:${title}|act:${act}|day:${t.day}|role:${t.role}`;
         }
         if (!groups.has(key)) groups.set(key, []);
         groups.get(key).push(t);
@@ -6437,9 +6447,7 @@
         showCompletedToastMessage('✓ No duplicate jobs found.');
         return;
       }
-      const msg = acrossDays
-        ? `Found ${remove.size} duplicate job(s) (recurring SAP orders or identical jobs across days).\n\nRemove them?\n\nThe copy with the most progress (completed / notes / photos / hours) will be kept.`
-        : `Found ${remove.size} duplicate job(s) on the same day.\n\nRemove them?`;
+      const msg = `Found ${remove.size} duplicate job(s) with identical Order # and Activity #.\n\nNote: Batched tasks with different activity numbers (e.g. 0010 vs 0020) are preserved as separate daily tasks.\n\nRemove duplicates? The copy with the most progress will be kept.`;
       if (!confirm(msg)) return;
       recordAutoSnapshot('Before Remove Duplicates');
       tasks = tasks.filter(t => !remove.has(t.id));
