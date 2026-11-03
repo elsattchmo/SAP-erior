@@ -1604,10 +1604,12 @@
         <div class="p-4 overflow-y-auto space-y-3.5 flex-1 text-xs">
           <!-- 1. SIMPLE 1-TAP SAVE & RESTORE (For Everyone!) -->
           <div class="surface-card p-3.5 rounded-2xl bg-amber-50/60 border border-amber-200 space-y-2.5">
-            <h4 class="font-extrabold uppercase tracking-wider text-amber-900 text-[11px]">⚡ 1-Tap Save &amp; Restore</h4>
-            <p class="text-[11px] text-slate-600 leading-relaxed">
-              Saves all tasks, hours, notes, and settings into one standard <code class="font-mono font-bold">.md</code> file inside your export folder.
-            </p>
+            <h4 class="font-extrabold uppercase tracking-wider text-amber-900 text-[11px]">📍 Where Is My Data?</h4>
+            <div class="p-2.5 rounded-xl bg-white border border-amber-200/80 space-y-1.5 text-[11px] text-slate-700 leading-relaxed">
+              <p><strong>Live data:</strong> saved automatically <strong>inside this app on this phone</strong> every time you change something. No file needed. Currently: <strong id="dataStatusLine">–</strong></p>
+              <p><strong>Backup file:</strong> <em>Save Backup File</em> creates <code id="backupFilenameHint" class="font-mono font-bold">SAPerior_Backup_YYYY-MM-DD.md</code> in your phone's <strong>Downloads</strong> folder. Keep it somewhere safe (email it to yourself, Drive, etc.).</p>
+              <p><strong>Restore:</strong> pick that <code class="font-mono">.md</code> file – it <strong>replaces</strong> everything currently in the app.</p>
+            </div>
 
             <div class="grid grid-cols-2 gap-2">
               <button
@@ -1630,8 +1632,8 @@
               <input id="restoreMdInput" type="file" accept=".md,.txt,.json,.sql" class="hidden" />
             </div>
 
-            <!-- Export Folder Helper Bar -->
-            <div class="p-2.5 rounded-xl bg-white border border-amber-200/80 flex items-center justify-between gap-2">
+            <!-- Export Folder Helper Bar (hidden: browsers always save to Downloads) -->
+            <div class="hidden p-2.5 rounded-xl bg-white border border-amber-200/80 flex items-center justify-between gap-2">
               <div class="min-w-0 flex-1">
                 <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Configured Export / Import Folder</span>
                 <p id="backupFolderDisplay" class="font-mono text-[11px] text-slate-700 truncate">/storage/emulated/0/Documents/OT_Swing/</p>
@@ -1679,13 +1681,21 @@
             </div>
           </div>
 
+          <!-- CLEAN UP / START AGAIN -->
+          <div class="surface-card p-3.5 rounded-2xl bg-rose-50/60 border border-rose-200 space-y-2.5">
+            <h4 class="font-extrabold uppercase tracking-wider text-rose-900 text-[11px]">🧹 Clean Up &amp; Start Again</h4>
+            <button id="removeDuplicatesBtn" type="button" class="w-full py-2.5 px-3 rounded-xl bg-white hover:bg-rose-50 border border-rose-300 text-rose-800 font-bold text-xs transition">🧬 Remove Duplicate Jobs</button>
+            <button id="clearAllDataBtn" type="button" class="w-full py-2.5 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs transition">🗑️ Clear Everything &amp; Start Fresh</button>
+            <p class="text-[10px] text-rose-700">Clearing wipes all jobs, notes, photos, history &amp; settings from this phone. You'll be offered a backup first.</p>
+          </div>
+
           <!-- 3. COLLAPSIBLE ADVANCED OPTIONS (Folder Path, SQLite3 & GitHub) -->
           <details class="surface-card rounded-2xl bg-slate-50 border border-slate-200 p-3">
             <summary class="font-extrabold uppercase tracking-wider text-slate-700 text-primary-adaptive text-[11px] cursor-pointer select-none">
               🔧 Advanced: Folder Path, SQLite3 (.sql) &amp; GitHub Sync
             </summary>
             <div class="pt-3 mt-2 border-t border-slate-200 space-y-2.5">
-              <div>
+              <div class="hidden">
                 <label for="settingLocalBackupPath" class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Default Export / Import Folder Path</label>
                 <input
                   id="settingLocalBackupPath"
@@ -4842,7 +4852,8 @@
       // Day Tabs (Wed - Tue)
       swingList.forEach(({ day, short }) => {
         const dInfo = getDayInfo(day);
-        const scheduledOnDay = tasks.filter(t => matchesRoleFilter(t) && !t.completed && (t.day === day || (day === 1 && t.day === 0)));
+        // Count exactly what the day's list shows (incl. carried-over & Any Day jobs) so a ✓ only appears when the day is truly clear
+        const scheduledOnDay = getTasksForDay(day, 'ALL', '').filter(t => !t.completed);
         const openCount = scheduledOnDay.length;
         const hasPM03 = scheduledOnDay.some(t => t.priority === 'PM03' || t.isBlockedPri);
         const isSelected = activeMainView === 'tasks' && selectedViewDay === day;
@@ -6318,7 +6329,36 @@
       setTimeout(() => backupModalFeedbackEl.classList.add('hidden'), 3200);
     }
 
+    function refreshDataStatusLine() {
+      const el = document.getElementById('dataStatusLine');
+      if (!el) return;
+      const open = tasks.filter(t => !t.completed).length;
+      el.textContent = `${tasks.length} jobs (${open} open, ${tasks.length - open} done)`;
+      const fn = document.getElementById('backupFilenameHint');
+      if (fn) fn.textContent = `SAPerior_Backup_${new Date().toISOString().slice(0, 10)}.md`;
+    }
+
+    function findDuplicateTasks() {
+      const score = t => (t.completed ? 100 : 0) + (t.notes ? 10 : 0) + (t.attachments ? t.attachments.length : 0) + (Number(t.actualWork) || 0);
+      const groups = new Map();
+      tasks.forEach(t => {
+        const key = t.orderNumber
+          ? `o:${t.orderNumber}|${t.activityNumber || ''}`
+          : `t:${(t.title || '').trim().toLowerCase()}|${t.day}|${t.role}`;
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(t);
+      });
+      const remove = new Set();
+      groups.forEach(list => {
+        if (list.length < 2) return;
+        const keep = list.slice().sort((a, b) => score(b) - score(a))[0];
+        list.forEach(t => { if (t !== keep) remove.add(t.id); });
+      });
+      return remove;
+    }
+
     function openBackupRestoreModal() {
+      refreshDataStatusLine();
       const folder = appSettings.localBackupPath || '/storage/emulated/0/Documents/OT_Swing/';
       backupFolderDisplayEl.textContent = folder;
       settingLocalBackupPathEl.value = folder;
@@ -6433,11 +6473,10 @@
         tasks = newNormalized;
       } else {
         newNormalized.forEach(nt => {
+          // Same SAP order + activity = same job, whatever day/role it was scheduled on
           const isDup = nt.orderNumber && tasks.some(existing =>
             existing.orderNumber === nt.orderNumber &&
-            existing.activityNumber === nt.activityNumber &&
-            existing.day === nt.day &&
-            existing.role === nt.role
+            (existing.activityNumber || '') === (nt.activityNumber || '')
           );
           if (!isDup) {
             tasks.push(nt);
@@ -7219,7 +7258,7 @@
     // ==========================================
     backupSaveNowBtnEl.addEventListener('click', async () => {
       const fullMd = buildFullBackupMarkdown();
-      const filename = `OT_Full_Backup_${swingStartDate}.md`;
+      const filename = `SAPerior_Backup_${new Date().toISOString().slice(0, 10)}.md`;
       if (window.showSaveFilePicker) {
         try {
           const opts = {
@@ -7239,7 +7278,7 @@
         }
       }
       triggerFileDownload(filename, fullMd, 'text/markdown;charset=utf-8');
-      showBackupFeedback(`💾 Downloaded ${filename} (Target folder: ${appSettings.localBackupPath})!`);
+      showBackupFeedback(`💾 Downloaded ${filename} – check your phone's Downloads folder.`);
     });
 
     backupRestoreTriggerBtnEl.addEventListener('click', async () => {
@@ -8415,6 +8454,30 @@
         bonusCountdownTimerId = null;
       }
     }
+
+    // Clean up & reset
+    document.getElementById('removeDuplicatesBtn').addEventListener('click', () => {
+      const remove = findDuplicateTasks();
+      if (remove.size === 0) { showBackupFeedback('✓ No duplicate jobs found.'); return; }
+      if (!confirm(`Found ${remove.size} duplicate job(s) (same SAP order + activity). Remove them?\n\nThe copy with the most progress (completed / notes / photos / hours) is kept.`)) return;
+      recordAutoSnapshot('Before Remove Duplicates');
+      tasks = tasks.filter(t => !remove.has(t.id));
+      saveState('Duplicates removed');
+      renderTasks();
+      refreshDataStatusLine();
+      showBackupFeedback(`🧬 Removed ${remove.size} duplicate job(s).`);
+    });
+    document.getElementById('clearAllDataBtn').addEventListener('click', () => {
+      if (tasks.length > 0 && confirm('Download a backup file first? (Recommended)\n\nOK = download backup, Cancel = skip')) {
+        triggerFileDownload(`SAPerior_Backup_${new Date().toISOString().slice(0, 10)}.md`, buildFullBackupMarkdown(), 'text/markdown;charset=utf-8');
+      }
+      if (!confirm('⚠️ This permanently deletes ALL jobs, notes, photos, history and settings on this phone.\n\nClear everything and start fresh?')) return;
+      try {
+        Object.keys(localStorage).forEach(k => { if (/^(ot_|saperior)/i.test(k)) localStorage.removeItem(k); });
+        sessionStorage.clear();
+      } catch (e) {}
+      location.reload();
+    });
 
     // Empty-state splash actions
     document.getElementById('splashImportBtn').addEventListener('click', () => openJobImporterModal());

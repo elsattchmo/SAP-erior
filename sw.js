@@ -1,6 +1,6 @@
 // Network-first service worker: always tries to fetch the latest version
 // (so crew get updates automatically), falls back to cache when offline.
-const CACHE = 'saperior-v4';
+const CACHE = 'saperior-v5';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', (e) => {
