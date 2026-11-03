@@ -347,7 +347,7 @@
           <select
             id="roleFilterSelect"
             aria-label="Filter by MN28 Role"
-            title="Filter by MN28 (All Technology) or specific role (C01, C02, C03, G01, CQTex)"
+            title="Filter by MN28 (All Technology) or specific role (C01, C02, C03, G01, Tech)"
             class="surface-input w-28 px-2 py-1.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-extrabold text-slate-700 shrink-0 focus:outline-none focus:ring-2 focus:ring-amber-500"
           ></select>
         </div>
@@ -600,8 +600,8 @@
             <span class="font-semibold text-slate-700 text-[11px]">G01 Jobs</span>
           </label>
           <label class="flex items-center gap-1.5 p-2 rounded-xl bg-white border border-slate-200 cursor-pointer">
-            <input id="hoScopeCQTex" type="checkbox" class="w-4 h-4 accent-amber-600 rounded" />
-            <span class="font-semibold text-slate-700 text-[11px]">CQTex Jobs</span>
+            <input id="hoScopeTech" type="checkbox" class="w-4 h-4 accent-amber-600 rounded" />
+            <span class="font-semibold text-slate-700 text-[11px]">Tech Jobs</span>
           </label>
           <label class="flex items-center gap-1.5 p-2 rounded-xl bg-white border border-slate-200 cursor-pointer">
             <input id="hoScopePreCnf" type="checkbox" class="w-4 h-4 accent-slate-600 rounded" />
@@ -1815,12 +1815,12 @@
               <div>
                 <label for="importRoleFilterSelect" class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Roles to Import</label>
                 <select id="importRoleFilterSelect" class="surface-input w-full px-2 py-1.5 rounded-xl border border-slate-300 bg-white font-bold text-slate-800">
-                  <option value="ALL">MN28 (All: C01–G01, CQTex)</option>
+                  <option value="ALL">MN28 (All: C01–G01, Tech)</option>
                   <option value="C01">Only C01</option>
                   <option value="C02">Only C02</option>
                   <option value="C03">Only C03</option>
                   <option value="G01">Only G01</option>
-                  <option value="CQTex">Only CQTex</option>
+                  <option value="Tech">Only Tech</option>
                 </select>
               </div>
 
@@ -1853,7 +1853,7 @@
 
               <label class="flex items-center gap-2 cursor-pointer">
                 <input id="impOptDetectExt" type="checkbox" checked class="w-4 h-4 accent-violet-600 rounded" />
-                <span class="font-semibold text-slate-700 text-primary-adaptive">Auto-Detect <code class="font-mono">EXT</code> External Vendors (`GTA`, `Goldings`, `HDC Hire`) &amp; map `CQTex` to internal role</span>
+                <span class="font-semibold text-slate-700 text-primary-adaptive">Auto-Detect <code class="font-mono">EXT</code> External Vendors (`GTA`, `Goldings`, `HDC Hire`) &amp; map `Tech` to internal role</span>
               </label>
             </div>
 
@@ -2434,8 +2434,8 @@
       'Trailer', 'Loader', 'Dragline', 'Repeater', 'Network',
       'Comms', 'Truck', 'Grader', 'Dozer', 'Water', 'Workshop'
     ];
-    // MN28 Roles: C01, C02, C03, G01, and internal contractor CQTex
-    const MN28_ROLES = ['C01', 'C02', 'C03', 'G01', 'CQTex'];
+    // MN28 Roles: C01, C02, C03, G01, and Tech
+    const MN28_ROLES = ['C01', 'C02', 'C03', 'G01', 'Tech'];
 
 
     function getPriorityInfo(code) {
@@ -2720,7 +2720,7 @@
     function normalizeWorkCenterRole(rawWc) {
       if (!rawWc) return 'C01';
       const upper = String(rawWc).toUpperCase().trim();
-      if (upper.includes('CQTEX')) return 'CQTex';
+      if (upper.includes('CQTEX') || upper.includes('TECH')) return 'Tech';
       if (upper.includes('C01')) return 'C01';
       if (upper.includes('C02')) return 'C02';
       if (upper.includes('C03')) return 'C03';
@@ -2818,12 +2818,12 @@
 
       // Note: Order Type (PM0) is NEVER added as a tag; it is always parsed into task.priority!
 
-      // 4. External Contractor (EXT) Detection vs Internal CQTex
+      // 4. External Contractor (EXT) Detection vs Internal Tech
       let isExt = false;
       let extName = rowObj.extVendor || '';
       let overrideRole = null;
-      if (combinedText.includes('CQTEX')) {
-        overrideRole = 'CQTex';
+      if (combinedText.includes('CQTEX') || combinedText.includes('TECH')) {
+        overrideRole = 'Tech';
       } else if (opts.detectExt) {
         if (combinedText.includes('GTA')) {
           isExt = true;
@@ -3664,14 +3664,14 @@
 
     let appSettings = { ...DEFAULT_SETTINGS, importOptions: { ...DEFAULT_SETTINGS.importOptions } };
     let weeklyGeneralInfo = 'Roster Week: 04/11/26 – 10/11/26\n';
-    let handoverScope = { myRole: true, myCompleted: true, C01: false, C02: false, C03: false, G01: false, CQTex: false, sapCnf: false };
+    let handoverScope = { myRole: true, myCompleted: true, C01: false, C02: false, C03: false, G01: false, Tech: false, sapCnf: false };
     let swingStartDate = '2026-11-04';
     let dayDates = computeDayDatesFromStart(swingStartDate);
     let availableTags = DEFAULT_TAGS.slice();
     let availableRoles = MN28_ROLES.slice();
     let selectedNewTags = [];
     let activeTagFilter = 'ALL'; // 'ALL', 'FOLLOW_UP', 'PRI', or tag string
-    let activeRoleFilter = 'MN28_ALL'; // 'MN28_ALL', 'C01', 'C02', 'C03', 'G01', 'CQTex'
+    let activeRoleFilter = 'MN28_ALL'; // 'MN28_ALL', 'C01', 'C02', 'C03', 'G01', 'Tech'
     let searchQuery = '';
     let isAddFormOpen = false;
     let isHandoverAddOpen = false;
@@ -3699,7 +3699,8 @@
         ...a,
         kind: a.kind === 'pdf' ? 'doc' : (a.kind || 'doc')
       })) : [];
-      const roleNorm = MN28_ROLES.includes(t.role) ? t.role : normalizeWorkCenterRole(t.role);
+      let roleNorm = MN28_ROLES.includes(t.role) ? t.role : normalizeWorkCenterRole(t.role);
+      if (roleNorm === 'CQTex') roleNorm = 'Tech';
       const cleanTags = Array.isArray(t.tags)
         ? t.tags.filter(tg => !/^PM0[123]$/i.test(tg))
         : [];
@@ -3828,7 +3829,12 @@
                 ...((parsed.appSettings && parsed.appSettings.importOptions) || {})
               }
             };
-            if (parsed.activeRoleFilter) activeRoleFilter = parsed.activeRoleFilter;
+            if (parsed.activeRoleFilter) activeRoleFilter = parsed.activeRoleFilter === 'CQTex' ? 'Tech' : parsed.activeRoleFilter;
+            if (parsed.handoverScope) {
+              if (parsed.handoverScope.Tech !== undefined && parsed.handoverScope.Tech === undefined) {
+                parsed.handoverScope.Tech = parsed.handoverScope.Tech;
+              }
+            }
             if (parsed.handoverScope) handoverScope = { ...handoverScope, ...parsed.handoverScope };
             tasks = parsed.tasks.map((t, i) => normalizeTask(t, i));
             availableTags = Array.isArray(parsed.availableTags) && parsed.availableTags.length > 0
@@ -4254,7 +4260,7 @@
 
     function matchesRoleFilter(task) {
       const taskRole = task.role || 'C01';
-      if (activeRoleFilter === 'MN28_ALL') return true; // MN28 includes C01, C02, C03, G01, CQTex!
+      if (activeRoleFilter === 'MN28_ALL') return true; // MN28 includes C01, C02, C03, G01, Tech!
       return taskRole === activeRoleFilter;
     }
 
@@ -4349,7 +4355,7 @@
           if (handoverScope.C02 && t.role === 'C02') scopeAllowed = true;
           if (handoverScope.C03 && t.role === 'C03') scopeAllowed = true;
           if (handoverScope.G01 && t.role === 'G01') scopeAllowed = true;
-          if (handoverScope.CQTex && t.role === 'CQTex') scopeAllowed = true;
+          if (handoverScope.Tech && t.role === 'Tech') scopeAllowed = true;
           if (handoverScope.sapCnf && (t.completedBy === 'SAP (CNF)' || t.isPreCompletedCnf)) scopeAllowed = true;
 
           const anyScopeChecked = Object.values(handoverScope).some(Boolean);
@@ -4688,7 +4694,7 @@
         if (prevH) handoverEntryDaySelectEl.value = prevH;
       }
 
-      // Role dropdowns: C01, C02, C03, G01, CQTex
+      // Role dropdowns: C01, C02, C03, G01, Tech
       [newTaskRoleSelectEl, detailRoleSelectEl, settingMyRoleSelectEl].forEach(sel => {
         if (!sel) return;
         const prev = sel.value;
@@ -4705,7 +4711,7 @@
         settingMyRoleSelectEl.value = appSettings.myActiveRole || 'C01';
       }
 
-      // Compact Main Role Filter dropdown: MN28 (All Technology including CQTex) + individual roles (NO external contractors!)
+      // Compact Main Role Filter dropdown: MN28 (All Technology including Tech) + individual roles (NO external contractors!)
       if (roleFilterSelectEl) {
         roleFilterSelectEl.innerHTML = '';
 
@@ -4967,7 +4973,7 @@
       const endInfo = getDayInfo(getTotalSwingDays());
       summarySwingBadgeEl.textContent = `MN28 Swing • ${startInfo.ddMmYy} – ${endInfo.ddMmYy}`;
       summaryFilterSubtitleEl.textContent = activeRoleFilter === 'MN28_ALL'
-        ? 'Showing: MN28 (All Technology — C01, C02, C03, G01, CQTex)'
+        ? 'Showing: MN28 (All Technology — C01, C02, C03, G01, Tech)'
         : `Showing Role: ${activeRoleFilter}`;
 
       // Radial Ring
@@ -5545,7 +5551,7 @@
           metaRow.appendChild(cnfBadge);
         }
 
-        // MN28 Role Badge (C01, C02, C03, G01, CQTex)
+        // MN28 Role Badge (C01, C02, C03, G01, Tech)
         if (appSettings.listShowRole && task.role) {
           const roleBadge = document.createElement('span');
           const roleColors = {
@@ -5553,7 +5559,7 @@
             C02: 'bg-cyan-50 text-cyan-800 border-cyan-200',
             C03: 'bg-purple-50 text-purple-800 border-purple-200',
             G01: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-            CQTex: 'bg-amber-100 text-amber-950 border-amber-300'
+            Tech: 'bg-amber-100 text-amber-950 border-amber-300'
           };
           roleBadge.className = `scalable-badge text-[10px] font-bold px-1.5 py-0.5 rounded-lg border ${roleColors[task.role] || 'bg-indigo-50 text-indigo-800 border-indigo-200'}`;
           roleBadge.textContent = task.role;
@@ -8073,7 +8079,7 @@
     const hoScopeC02El = document.getElementById('hoScopeC02');
     const hoScopeC03El = document.getElementById('hoScopeC03');
     const hoScopeG01El = document.getElementById('hoScopeG01');
-    const hoScopeCQTexEl = document.getElementById('hoScopeCQTex');
+    const hoScopeTechEl = document.getElementById('hoScopeTech');
     const hoScopePreCnfEl = document.getElementById('hoScopePreCnf');
     const hoMyRoleLabelEl = document.getElementById('hoMyRoleLabel');
 
@@ -8085,7 +8091,7 @@
       if (hoScopeC02El) hoScopeC02El.checked = Boolean(handoverScope.C02);
       if (hoScopeC03El) hoScopeC03El.checked = Boolean(handoverScope.C03);
       if (hoScopeG01El) hoScopeG01El.checked = Boolean(handoverScope.G01);
-      if (hoScopeCQTexEl) hoScopeCQTexEl.checked = Boolean(handoverScope.CQTex);
+      if (hoScopeTechEl) hoScopeTechEl.checked = Boolean(handoverScope.Tech);
       if (hoScopePreCnfEl) hoScopePreCnfEl.checked = Boolean(handoverScope.sapCnf);
     }
 
@@ -8096,7 +8102,7 @@
       [hoScopeC02El, 'C02'],
       [hoScopeC03El, 'C03'],
       [hoScopeG01El, 'G01'],
-      [hoScopeCQTexEl, 'CQTex'],
+      [hoScopeTechEl, 'Tech'],
       [hoScopePreCnfEl, 'sapCnf']
     ].forEach(([el, key]) => {
       if (el) {
