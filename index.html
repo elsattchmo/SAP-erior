@@ -39,6 +39,105 @@
     body.text-scale-lg #appMainCard,
     body.text-scale-lg .modal-surface { max-width: 34rem !important; }
     body.text-scale-lg .task-title-text { font-size: 1.06rem !important; line-height: 1.45rem !important; }
+
+    /* ========================================================================== */
+    /* DESKTOP DUAL-PANE MODE (Option A: Master-Detail Inspector & Split Handover) */
+    /* ========================================================================== */
+    @media (min-width: 1024px) {
+      body.desktop-mode {
+        padding-left: 1.5rem !important;
+        padding-right: 1.5rem !important;
+      }
+      body.desktop-mode #appMainCard {
+        max-width: 76rem !important; /* ~1216px */
+        width: 100% !important;
+        margin: 0 auto !important;
+        border-radius: 1.5rem !important;
+        transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      body.desktop-mode .desktop-dual-pane-grid {
+        display: grid !important;
+        grid-template-columns: minmax(360px, 480px) 1fr !important;
+        align-items: stretch !important;
+        min-height: 680px !important;
+      }
+      body.desktop-mode #dailyTasksLeftPane {
+        border-right: 1px solid #e2e8f0;
+        max-height: calc(100vh - 170px);
+        overflow-y: auto;
+      }
+      body.dark-mode.desktop-mode #dailyTasksLeftPane {
+        border-right-color: #334155;
+      }
+      body.desktop-mode #desktopInspectorContainer {
+        display: flex !important;
+        flex-direction: column !important;
+        height: 100% !important;
+        max-height: calc(100vh - 170px);
+        overflow-y: auto;
+        position: relative;
+        background: #f8fafc;
+      }
+      body.dark-mode.desktop-mode #desktopInspectorContainer {
+        background: #0b1120;
+      }
+      body.desktop-mode #taskDetailModal {
+        position: static !important;
+        inset: auto !important;
+        width: 100% !important;
+        height: 100% !important;
+        max-width: 100% !important;
+        max-height: none !important;
+        background: transparent !important;
+        backdrop-filter: none !important;
+        z-index: auto !important;
+        padding: 0 !important;
+        border-radius: 0 !important;
+      }
+      body.desktop-mode #taskDetailModal > .modal-surface {
+        max-width: 100% !important;
+        width: 100% !important;
+        height: 100% !important;
+        max-height: none !important;
+        border-radius: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+      }
+      body.desktop-mode .handover-dual-grid {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 1.25rem !important;
+        align-items: start !important;
+      }
+      body.desktop-mode #handoverPreviewStickyWrap {
+        position: sticky !important;
+        top: 0.75rem;
+        max-height: calc(100vh - 200px);
+        overflow-y: auto;
+      }
+      body.desktop-mode .summary-stats-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+      }
+    }
+
+    /* Mobile Fallbacks when desktop-mode is NOT active or on smaller screens */
+    @media (max-width: 1023px) {
+      #desktopInspectorContainer {
+        display: contents !important;
+      }
+      #desktopInspectorPlaceholder {
+        display: none !important;
+      }
+    }
+    body:not(.desktop-mode) #desktopInspectorContainer {
+      display: contents !important;
+    }
+    body:not(.desktop-mode) #desktopInspectorPlaceholder {
+      display: none !important;
+    }
+    body:not(.desktop-mode) .handover-dual-grid {
+      display: block !important;
+    }
     body.text-scale-lg .scalable-prose { font-size: 0.94rem !important; line-height: 1.42rem !important; }
     body.text-scale-lg .scalable-input { font-size: 0.98rem !important; line-height: 1.45rem !important; }
     body.text-scale-lg .scalable-badge { font-size: 0.75rem !important; padding: 0.18rem 0.48rem !important; }
@@ -259,6 +358,16 @@
         </button>
 
         <button
+          id="toggleDesktopModeBtn"
+          type="button"
+          class="w-10 h-10 rounded-xl text-lg font-bold border border-slate-700 bg-slate-900/70 text-slate-200 hover:bg-slate-700/60 transition shrink-0 flex items-center justify-center p-0"
+          title="Toggle Desktop / Mobile Mode"
+          aria-label="Toggle Desktop Mode"
+        >
+          <span id="desktopModeIcon">🖥️</span>
+        </button>
+
+        <button
           id="openSettingsBtn"
           type="button"
           class="w-10 h-10 rounded-xl text-lg font-bold border border-slate-700 bg-slate-900/70 text-slate-200 hover:bg-slate-700/60 transition shrink-0 flex items-center justify-center p-0"
@@ -302,10 +411,13 @@
     </div>
 
     <!-- ========================================================= -->
-    <!-- VIEW A: DAILY TASKS VIEW -->
+    <!-- VIEW A: DAILY TASKS VIEW (Dual-Pane Master-Detail on Desktop) -->
     <!-- ========================================================= -->
     <div id="dailyTasksView">
-      <section class="surface-section px-3.5 pt-3 pb-2.5 border-b border-slate-100 bg-white space-y-2">
+      <div id="dailyTasksDualWrap" class="desktop-dual-pane-grid">
+        <!-- LEFT COLUMN: TASK LIST & FILTERS -->
+        <div id="dailyTasksLeftPane" class="flex flex-col min-w-0">
+          <section class="surface-section px-3.5 pt-3 pb-2.5 border-b border-slate-100 bg-white space-y-2">
         <!-- Day Title (with dd/mm/yy) + "+ Add Task" Button -->
         <div class="flex items-center justify-between gap-2">
           <div class="min-w-0">
@@ -525,446 +637,22 @@
       </section>
     </div>
 
-    <!-- ========================================================= -->
-    <!-- VIEW B: WEEKLY HANDOVER TAB -->
-    <!-- ========================================================= -->
-    <section id="handoverViewSection" class="surface-section hidden p-3.5 space-y-3">
-      <div class="flex items-center justify-between gap-2 pb-2 border-b border-slate-200">
-        <div>
-          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-700 text-primary-adaptive">Wed – Tue Handover</h2>
-          <p class="text-[11px] text-slate-400">Rich Text, Basic Text &amp; .MD • Dot points by day</p>
+    <!-- RIGHT COLUMN: DESKTOP TASK INSPECTOR -->
+    <div id="desktopInspectorContainer">
+      <!-- Desktop Placeholder when no task is active -->
+      <div id="desktopInspectorPlaceholder" class="p-8 text-center flex flex-col items-center justify-center h-full space-y-3 min-h-[380px]">
+        <div class="w-14 h-14 rounded-2xl bg-amber-500/15 text-amber-500 flex items-center justify-center text-2xl font-bold border border-amber-500/30 shadow-xs">
+          ⚡
         </div>
-
-        <div class="flex items-center gap-1.5 shrink-0">
-          <button
-            id="toggleHandoverFilterBtn"
-            type="button"
-            class="px-2.5 py-1.5 rounded-xl border border-slate-200 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition"
-          >
-            Showing: Completed
-          </button>
-          <button
-            id="toggleHandoverAddBtn"
-            type="button"
-            class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-slate-950 font-bold text-xs shadow-xs transition"
-          >
-            + Add Entry
-          </button>
-        </div>
-      </div>
-
-      <!-- GENERAL WEEK SUMMARY / SITE OVERVIEW AT TOP OF HANDOVER -->
-      <div class="p-3 rounded-2xl bg-amber-50/60 border border-amber-200 space-y-1.5">
-        <div class="flex items-center justify-between">
-          <label for="weeklyGeneralInfoInput" class="text-[11px] font-extrabold uppercase tracking-wider text-amber-900">📌 General Week Overview / Crew Notes</label>
-          <span class="text-[10px] text-amber-700 font-semibold">Prefilled with Roster Week</span>
-        </div>
-        <textarea
-          id="weeklyGeneralInfoInput"
-          rows="5"
-          placeholder="Roster Week: 04/11/26 – 10/11/26..."
-          class="surface-input scalable-input w-full min-h-[110px] p-2.5 rounded-xl border border-amber-300 bg-white text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 leading-relaxed font-medium"
-        ></textarea>
-      </div>
-
-      <!-- HANDOVER SCOPE & ROLES TO INCLUDE -->
-      <div class="surface-card p-3 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-        <div class="flex items-center justify-between">
-          <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-700 text-primary-adaptive">📋 What to Include in Handover Report:</span>
-          <span class="text-[10px] text-slate-400">Defaults: My Role + Completed</span>
-        </div>
-
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-          <label class="flex items-center gap-1.5 p-2 rounded-xl bg-white border border-slate-200 cursor-pointer">
-            <input id="hoScopeMyRole" type="checkbox" checked class="w-4 h-4 accent-amber-500 rounded" />
-            <span class="font-bold text-slate-800 text-[11px]">My Role (<span id="hoMyRoleLabel">C01</span>)</span>
-          </label>
-          <label class="flex items-center gap-1.5 p-2 rounded-xl bg-white border border-slate-200 cursor-pointer">
-            <input id="hoScopeMyCompleted" type="checkbox" checked class="w-4 h-4 accent-emerald-600 rounded" />
-            <span class="font-bold text-slate-800 text-[11px]">Jobs I Completed</span>
-          </label>
-          <label class="flex items-center gap-1.5 p-2 rounded-xl bg-white border border-slate-200 cursor-pointer">
-            <input id="hoScopeC01" type="checkbox" class="w-4 h-4 accent-indigo-600 rounded" />
-            <span class="font-semibold text-slate-700 text-[11px]">C01 Jobs</span>
-          </label>
-          <label class="flex items-center gap-1.5 p-2 rounded-xl bg-white border border-slate-200 cursor-pointer">
-            <input id="hoScopeC02" type="checkbox" class="w-4 h-4 accent-cyan-600 rounded" />
-            <span class="font-semibold text-slate-700 text-[11px]">C02 Jobs</span>
-          </label>
-          <label class="flex items-center gap-1.5 p-2 rounded-xl bg-white border border-slate-200 cursor-pointer">
-            <input id="hoScopeC03" type="checkbox" class="w-4 h-4 accent-purple-600 rounded" />
-            <span class="font-semibold text-slate-700 text-[11px]">C03 Jobs</span>
-          </label>
-          <label class="flex items-center gap-1.5 p-2 rounded-xl bg-white border border-slate-200 cursor-pointer">
-            <input id="hoScopeG01" type="checkbox" class="w-4 h-4 accent-emerald-600 rounded" />
-            <span class="font-semibold text-slate-700 text-[11px]">G01 Jobs</span>
-          </label>
-          <label class="flex items-center gap-1.5 p-2 rounded-xl bg-white border border-slate-200 cursor-pointer">
-            <input id="hoScopeTech" type="checkbox" class="w-4 h-4 accent-amber-600 rounded" />
-            <span class="font-semibold text-slate-700 text-[11px]">Tech Jobs</span>
-          </label>
-          <label class="flex items-center gap-1.5 p-2 rounded-xl bg-white border border-slate-200 cursor-pointer">
-            <input id="hoScopePreCnf" type="checkbox" class="w-4 h-4 accent-slate-600 rounded" />
-            <span class="font-semibold text-slate-700 text-[11px]">SAP Done (CNF)</span>
-          </label>
-        </div>
-      </div>
-
-      <!-- COLLAPSIBLE "+ ADD HANDOVER ENTRY" PANEL -->
-      <div id="handoverAddPanel" class="surface-card hidden p-3 rounded-2xl bg-slate-50 border border-slate-200 task-enter space-y-2.5">
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-bold text-slate-700 text-primary-adaptive">Add Extra Handover Entry</span>
-          <span class="text-[10px] text-slate-400">Adds directly to that day's dot points</span>
-        </div>
-
-        <form id="handoverAddForm" class="space-y-2">
-          <input
-            id="handoverJobInput"
-            type="text"
-            placeholder="Job / Handover item (e.g. Swapped TR013 Cisco repeater PoE injector)..."
-            autocomplete="off"
-            class="surface-input w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs text-slate-800"
-          />
-
-          <textarea
-            id="handoverNotesInput"
-            rows="3"
-            placeholder="Handover notes (e.g. Spare unit taken from sea-container shelf B)..."
-            class="surface-input w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs text-slate-800"
-          ></textarea>
-
-          <div class="grid grid-cols-3 gap-1.5">
-            <div>
-              <label for="handoverEntryDaySelect" class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Day</label>
-              <select
-                id="handoverEntryDaySelect"
-                class="surface-input w-full px-2 py-1.5 rounded-xl border border-slate-300 bg-white text-xs font-bold text-slate-800"
-              ></select>
-            </div>
-
-            <div>
-              <label for="handoverEntryPrioSelect" class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">PM0</label>
-              <select
-                id="handoverEntryPrioSelect"
-                class="surface-input w-full px-2 py-1.5 rounded-xl border border-slate-300 bg-white text-xs font-bold text-slate-800"
-              >
-                <option value="PM03">PM03</option>
-                <option value="PM02" selected>PM02</option>
-                <option value="PM01">PM01</option>
-              </select>
-            </div>
-
-            <div>
-              <label for="handoverEntryLocationInput" class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">📍 Location</label>
-              <input
-                id="handoverEntryLocationInput"
-                type="text"
-                maxlength="20"
-                placeholder="e.g. Pit Rim"
-                class="surface-input w-full px-2 py-1.5 rounded-xl border border-slate-300 bg-white text-xs font-semibold text-slate-800"
-              />
-            </div>
-          </div>
-
-          <p id="handoverInputFeedback" class="text-xs text-rose-600 hidden">Please enter what the job or handover item was.</p>
-
-          <div class="flex items-center justify-end gap-2 pt-1">
-            <button
-              id="cancelHandoverAddBtn"
-              type="button"
-              class="px-3 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs transition"
-            >
-              Cancel
-            </button>
-            <button
-              id="saveHandoverEntryBtn"
-              type="submit"
-              class="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-xs transition"
-            >
-              + Save to Handover
-            </button>
-          </div>
-        </form>
-      </div>
-
-      <!-- Day-by-Day Interactive Moveable Cards -->
-      <div id="handoverDaysContainer" class="space-y-3"></div>
-
-      <!-- HANDOVER PREVIEW SECTION (Rich Text | Basic Text | Markdown .md) -->
-      <div class="pt-2 border-t border-slate-200 space-y-2.5">
-        <div class="flex items-center justify-between flex-wrap gap-1.5">
-          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Handover Preview</span>
-          <div class="flex items-center gap-1 bg-slate-100 p-0.5 rounded-xl border border-slate-200">
-            <button id="previewModeRichBtn" type="button" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white text-slate-800 shadow-2xs">
-              Rich Text
-            </button>
-            <button id="previewModeBasicBtn" type="button" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold text-slate-500">
-              Basic Text
-            </button>
-            <button id="previewModeMdBtn" type="button" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold text-slate-500">
-              Markdown (.md)
-            </button>
-          </div>
-        </div>
-
-        <!-- Rich Text Preview Container -->
-        <div
-          id="handoverRichPreview"
-          class="surface-card p-3.5 rounded-2xl border border-slate-200 bg-white text-xs text-slate-800 space-y-3 max-h-80 overflow-y-auto shadow-inner"
-        ></div>
-
-        <!-- Basic Text / Markdown (.md) Textarea Preview -->
-        <textarea
-          id="handoverPlainText"
-          rows="8"
-          readonly
-          class="surface-input hidden w-full p-3 rounded-2xl border border-slate-200 bg-slate-50 text-xs font-mono text-slate-700 leading-relaxed focus:outline-none"
-        ></textarea>
-
-        <!-- Copy / Export Feedback Banner -->
-        <div id="copyFeedbackBanner" class="hidden p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold text-center">
-          ✓ Saved!
-        </div>
-
-        <!-- COPY, EXPORT & EMAIL BAR -->
-        <div class="space-y-2 pt-1">
-          <div class="grid grid-cols-3 gap-1.5">
-            <button
-              id="copyRichHandoverBtn"
-              type="button"
-              class="py-2 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-[11px] transition flex items-center justify-center gap-1 shadow-2xs"
-            >
-              <span>📋</span><span>Copy Handover</span>
-            </button>
-            <button
-              id="exportRichDocBtn"
-              type="button"
-              class="py-2 px-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[11px] transition flex items-center justify-center gap-1 shadow-2xs"
-            >
-              <span>📄</span><span>Export Rich Doc</span>
-            </button>
-            <button
-              id="exportMdBtn"
-              type="button"
-              class="py-2 px-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-[11px] transition flex items-center justify-center gap-1 shadow-2xs"
-            >
-              <span>⬇️</span><span>Export .MD</span>
-            </button>
-          </div>
-
-          <button
-            id="openEmailHandoverModalBtn"
-            type="button"
-            class="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition flex items-center justify-center gap-2 shadow-xs"
-          >
-            <span>✉️</span><span>Email Handover Report…</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- END OF TUESDAY: START NEW SWING & ARCHIVE -->
-      <div class="p-3.5 rounded-2xl bg-slate-800 text-white space-y-3">
-        <div class="flex items-center justify-between gap-2">
-          <div>
-            <h3 class="text-xs font-bold text-amber-300 uppercase tracking-wider">End of Swing • Start New Swing</h3>
-            <p class="text-[11px] text-slate-300 mt-0.5">Archives handover, auto-saves backup, carries PRI/Follow-Ups, and resets PM01.</p>
-          </div>
-          <button
-            id="openNewSwingConfirmBtn"
-            type="button"
-            class="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shrink-0 transition"
-          >
-            🔄 New Swing
-          </button>
-        </div>
-
-        <div id="newSwingConfirmBox" class="hidden p-3 rounded-xl bg-slate-900 border border-amber-400/50 space-y-2">
-          <p class="text-xs text-amber-200 font-medium">
-            Archive this swing's handover, advance dates +7 days, carry over PRI/open Follow-Ups, and reset PM01 jobs?
+        <div class="space-y-1">
+          <h3 class="text-sm font-extrabold text-slate-800 text-primary-adaptive">Select a Task to Inspect</h3>
+          <p class="text-xs text-slate-500 text-secondary-adaptive max-w-xs">
+            Click any job on the left to view SAP details, track hours, write handover notes, or manage attachments side-by-side.
           </p>
-          <div class="flex items-center justify-end gap-2">
-            <button id="cancelNewSwingBtn" type="button" class="px-3 py-1.5 rounded-lg bg-slate-700 text-slate-200 text-xs font-bold">
-              Cancel
-            </button>
-            <button id="confirmNewSwingBtn" type="button" class="px-3 py-1.5 rounded-lg bg-emerald-500 text-slate-950 text-xs font-extrabold">
-              ✓ Archive &amp; Start Wed
-            </button>
-          </div>
-        </div>
-
-        <div id="pastSwingsSection" class="pt-2 border-t border-slate-700">
-          <div class="flex items-center justify-between mb-1.5">
-            <span class="text-[11px] font-bold text-slate-300 uppercase tracking-wider">📚 Past Swings Archive</span>
-            <span id="archiveCountLabel" class="text-[10px] text-amber-300 font-bold">0 saved</span>
-          </div>
-          <div id="archiveListContainer" class="space-y-1.5 max-h-40 overflow-y-auto"></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ========================================================= -->
-    <!-- VIEW C: SWING SUMMARY & ANALYTICS DASHBOARD (With Visual Flair!) -->
-    <!-- ========================================================= -->
-    <section id="summaryViewSection" class="surface-section hidden p-3.5 space-y-3.5">
-      <!-- Hero Radial Progress & Hours Booked Card -->
-      <div class="p-4 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-white shadow-xl border border-slate-700 space-y-3">
-        <div class="flex items-center justify-between gap-2">
-          <div>
-            <span id="summarySwingBadge" class="inline-block px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-[10px] font-extrabold uppercase tracking-wider">
-              MN28 Swing Telemetry
-            </span>
-            <h2 class="text-base font-extrabold mt-1 tracking-tight text-white">Swing Status &amp; Hours Booked</h2>
-            <p id="summaryFilterSubtitle" class="text-[11px] text-slate-300">Viewing: MN28 (All Technology)</p>
-          </div>
-
-          <button
-            id="summaryQuickSyncBtn"
-            type="button"
-            class="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs transition shrink-0 shadow"
-          >
-            🔄 Sync Crew
-          </button>
-        </div>
-
-        <!-- Radial Ring + Key KPIs -->
-        <div class="grid grid-cols-3 gap-2.5 items-center pt-1">
-          <!-- Animated SVG Radial Gauge -->
-          <div class="flex flex-col items-center justify-center bg-slate-950/50 rounded-2xl p-2.5 border border-slate-700/80">
-            <div class="relative w-20 h-20 flex items-center justify-center">
-              <svg class="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
-                <circle cx="40" cy="40" r="32" stroke="#1e293b" stroke-width="8" fill="transparent" />
-                <circle
-                  id="summaryProgressRing"
-                  cx="40"
-                  cy="40"
-                  r="32"
-                  stroke="#10b981"
-                  stroke-width="8"
-                  stroke-dasharray="201"
-                  stroke-dashoffset="201"
-                  stroke-linecap="round"
-                  fill="transparent"
-                />
-              </svg>
-              <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
-                <span id="summaryCompletionPct" class="text-base font-extrabold text-emerald-400">0%</span>
-                <span class="text-[9px] uppercase tracking-wider text-slate-400 font-bold">Done</span>
-              </div>
-            </div>
-            <p id="summaryJobsRatioText" class="text-[11px] font-bold text-slate-200 mt-1">0 / 0 Jobs</p>
-          </div>
-
-          <!-- Hours Booked vs Allocated KPI Box -->
-          <div class="col-span-2 bg-slate-950/50 rounded-2xl p-3 border border-slate-700/80 space-y-2">
-            <div class="flex items-center justify-between">
-              <span class="text-[10px] font-extrabold uppercase tracking-wider text-amber-300">⏱️ Hours Booked vs Allocated</span>
-              <span id="summaryHoursPctBadge" class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300">0%</span>
-            </div>
-
-            <div class="flex items-baseline justify-between gap-2">
-              <div>
-                <span id="summaryActualHoursBig" class="text-2xl font-extrabold text-white">0.0h</span>
-                <span class="text-[11px] text-slate-400 font-semibold">booked</span>
-              </div>
-              <div class="text-right">
-                <span id="summaryAllocatedHoursText" class="text-xs font-bold text-slate-300">/ 0.0h allocated</span>
-                <p id="summaryRemainingHoursText" class="text-[10px] text-emerald-400 font-semibold">0.0h remaining on open jobs</p>
-              </div>
-            </div>
-
-            <!-- Dual Progress Bar -->
-            <div class="w-full h-2.5 rounded-full bg-slate-800 overflow-hidden">
-              <div id="summaryHoursProgressBar" class="h-full bg-gradient-to-r from-amber-400 to-emerald-400 rounded-full transition-all duration-300" style="width: 0%"></div>
-            </div>
-          </div>
         </div>
       </div>
 
-      <!-- Quick Tap Action Radar Tiles (Tap any tile to jump to those tasks!) -->
-      <div class="grid grid-cols-3 gap-2">
-        <button
-          id="summaryTileOpenBtn"
-          type="button"
-          class="surface-card p-2.5 rounded-2xl border border-slate-200 bg-white hover:border-amber-400 text-left transition"
-        >
-          <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Open Jobs</span>
-          <span id="summaryTileOpenCount" class="text-lg font-extrabold text-slate-800 text-primary-adaptive">0</span>
-          <span class="text-[10px] text-amber-600 font-semibold block">Tap to view ›</span>
-        </button>
-
-        <button
-          id="summaryTilePriBtn"
-          type="button"
-          class="surface-card p-2.5 rounded-2xl border border-rose-200 bg-rose-50/50 hover:border-rose-400 text-left transition"
-        >
-          <span class="text-[10px] font-extrabold uppercase tracking-wider text-rose-700 block">PRI Blocked</span>
-          <span id="summaryTilePriCount" class="text-lg font-extrabold text-rose-700">0</span>
-          <span class="text-[10px] text-rose-600 font-semibold block">Reschedule ›</span>
-        </button>
-
-        <button
-          id="summaryTileFollowUpBtn"
-          type="button"
-          class="surface-card p-2.5 rounded-2xl border border-amber-200 bg-amber-50/50 hover:border-amber-400 text-left transition"
-        >
-          <span class="text-[10px] font-extrabold uppercase tracking-wider text-amber-800 block">Follow-Ups</span>
-          <span id="summaryTileFollowUpCount" class="text-lg font-extrabold text-amber-900">0</span>
-          <span class="text-[10px] text-amber-700 font-semibold block">Track ›</span>
-        </button>
-      </div>
-
-      <!-- Day-by-Day Workload & Hours Mini Chart (Wed – Tue) -->
-      <div class="surface-card p-3.5 rounded-2xl border border-slate-200 bg-slate-50/70 space-y-2.5">
-        <div class="flex items-center justify-between">
-          <h3 class="text-xs font-extrabold uppercase tracking-wider text-slate-700 text-primary-adaptive">📅 Daily Swing Load &amp; Hours (Tap Day to Open)</h3>
-          <span class="text-[10px] text-slate-400 font-semibold">Done vs Open</span>
-        </div>
-        <div id="summaryDailyChartGrid" class="grid grid-cols-7 gap-1.5 pt-1"></div>
-      </div>
-
-      <!-- Prominent Actual Hours Booked for Week Card (No role breakdown!) -->
-      <div class="surface-card p-4 rounded-3xl border border-slate-200 bg-white space-y-3 shadow-sm">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            <span class="text-lg">⏱️</span>
-            <div>
-              <h3 class="text-xs font-extrabold uppercase tracking-wider text-slate-800 text-primary-adaptive">Total Actual Hours Booked This Week</h3>
-              <p class="text-[11px] text-slate-400">Aggregated actual hours across completed &amp; active jobs</p>
-            </div>
-          </div>
-          <span id="summaryTotalActualHrsBadge" class="text-base font-extrabold font-mono text-emerald-600 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-xl">
-            0.0h
-          </span>
-        </div>
-
-        <div class="grid grid-cols-2 gap-2 pt-1">
-          <div class="p-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-center">
-            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Completed Jobs Booked</span>
-            <span id="summaryCompletedActualHrs" class="text-sm font-extrabold text-slate-800 text-primary-adaptive">0.0h</span>
-          </div>
-          <div class="p-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-center">
-            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Active Jobs Booked</span>
-            <span id="summaryActiveActualHrs" class="text-sm font-extrabold text-amber-700">0.0h</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Priority (PM01/PM02/PM03) & Top Asset Tags Breakdown -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-        <div class="surface-card p-3.5 rounded-2xl border border-slate-200 bg-slate-50/70 space-y-2">
-          <h3 class="text-xs font-extrabold uppercase tracking-wider text-slate-700 text-primary-adaptive">⚡ Order Type (PM0) Split</h3>
-          <div id="summaryPrioBreakdown" class="space-y-1.5 text-xs"></div>
-        </div>
-
-        <div class="surface-card p-3.5 rounded-2xl border border-slate-200 bg-slate-50/70 space-y-2">
-          <h3 class="text-xs font-extrabold uppercase tracking-wider text-slate-700 text-primary-adaptive">🏷️ Top Asset Categories</h3>
-          <div id="summaryTagsBreakdown" class="space-y-1.5 text-xs"></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ========================================================= -->
-    <!-- STREAMLINED TASK DETAIL SCREEN (Slide-Up Sheet) -->
+      <!-- STREAMLINED TASK DETAIL SCREEN (Slide-Up Sheet) -->
     <!-- ========================================================= -->
     <div id="taskDetailModal" class="submenu-backdrop hidden fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div class="submenu-sheet modal-surface w-full max-w-lg bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-700 max-h-[94vh] flex flex-col overflow-hidden">
@@ -1186,7 +874,454 @@
           </div>
         </div>
       </div>
+    </d
     </div>
+  </div>
+</div>
+
+    <!-- ========================================================= -->
+    <!-- VIEW B: WEEKLY HANDOVER TAB -->
+    <!-- ========================================================= -->
+    <section id="handoverViewSection" class="surface-section hidden p-3.5 space-y-3">
+      <div class="flex items-center justify-between gap-2 pb-2 border-b border-slate-200">
+        <div>
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-700 text-primary-adaptive">Wed – Tue Handover</h2>
+          <p class="text-[11px] text-slate-400">Rich Text, Basic Text &amp; .MD • Dot points by day</p>
+        </div>
+
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button
+            id="toggleHandoverFilterBtn"
+            type="button"
+            class="px-2.5 py-1.5 rounded-xl border border-slate-200 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition"
+          >
+            Showing: Completed
+          </button>
+          <button
+            id="toggleHandoverAddBtn"
+            type="button"
+            class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-slate-950 font-bold text-xs shadow-xs transition"
+          >
+            + Add Entry
+          </button>
+        </div>
+      </div>
+
+      <!-- GENERAL WEEK SUMMARY / SITE OVERVIEW AT TOP OF HANDOVER -->
+      <div class="handover-dual-grid"><div class="space-y-3 min-w-0"><div class="p-3 rounded-2xl bg-amber-50/60 border border-amber-200 space-y-1.5">
+        <div class="flex items-center justify-between">
+          <label for="weeklyGeneralInfoInput" class="text-[11px] font-extrabold uppercase tracking-wider text-amber-900">📌 General Week Overview / Crew Notes</label>
+          <span class="text-[10px] text-amber-700 font-semibold">Prefilled with Roster Week</span>
+        </div>
+        <textarea
+          id="weeklyGeneralInfoInput"
+          rows="5"
+          placeholder="Roster Week: 04/11/26 – 10/11/26..."
+          class="surface-input scalable-input w-full min-h-[110px] p-2.5 rounded-xl border border-amber-300 bg-white text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 leading-relaxed font-medium"
+        ></textarea>
+      </div>
+
+      <!-- HANDOVER SCOPE & ROLES TO INCLUDE -->
+      <div class="surface-card p-3 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-700 text-primary-adaptive">📋 What to Include in Handover Report:</span>
+          <span class="text-[10px] text-slate-400">Defaults: My Role + Completed</span>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+          <label class="flex items-center gap-1.5 p-2 rounded-xl bg-white border border-slate-200 cursor-pointer">
+            <input id="hoScopeMyRole" type="checkbox" checked class="w-4 h-4 accent-amber-500 rounded" />
+            <span class="font-bold text-slate-800 text-[11px]">My Role (<span id="hoMyRoleLabel">C01</span>)</span>
+          </label>
+          <label class="flex items-center gap-1.5 p-2 rounded-xl bg-white border border-slate-200 cursor-pointer">
+            <input id="hoScopeMyCompleted" type="checkbox" checked class="w-4 h-4 accent-emerald-600 rounded" />
+            <span class="font-bold text-slate-800 text-[11px]">Jobs I Completed</span>
+          </label>
+          <label class="flex items-center gap-1.5 p-2 rounded-xl bg-white border border-slate-200 cursor-pointer">
+            <input id="hoScopeC01" type="checkbox" class="w-4 h-4 accent-indigo-600 rounded" />
+            <span class="font-semibold text-slate-700 text-[11px]">C01 Jobs</span>
+          </label>
+          <label class="flex items-center gap-1.5 p-2 rounded-xl bg-white border border-slate-200 cursor-pointer">
+            <input id="hoScopeC02" type="checkbox" class="w-4 h-4 accent-cyan-600 rounded" />
+            <span class="font-semibold text-slate-700 text-[11px]">C02 Jobs</span>
+          </label>
+          <label class="flex items-center gap-1.5 p-2 rounded-xl bg-white border border-slate-200 cursor-pointer">
+            <input id="hoScopeC03" type="checkbox" class="w-4 h-4 accent-purple-600 rounded" />
+            <span class="font-semibold text-slate-700 text-[11px]">C03 Jobs</span>
+          </label>
+          <label class="flex items-center gap-1.5 p-2 rounded-xl bg-white border border-slate-200 cursor-pointer">
+            <input id="hoScopeG01" type="checkbox" class="w-4 h-4 accent-emerald-600 rounded" />
+            <span class="font-semibold text-slate-700 text-[11px]">G01 Jobs</span>
+          </label>
+          <label class="flex items-center gap-1.5 p-2 rounded-xl bg-white border border-slate-200 cursor-pointer">
+            <input id="hoScopeTech" type="checkbox" class="w-4 h-4 accent-amber-600 rounded" />
+            <span class="font-semibold text-slate-700 text-[11px]">Tech Jobs</span>
+          </label>
+          <label class="flex items-center gap-1.5 p-2 rounded-xl bg-white border border-slate-200 cursor-pointer">
+            <input id="hoScopePreCnf" type="checkbox" class="w-4 h-4 accent-slate-600 rounded" />
+            <span class="font-semibold text-slate-700 text-[11px]">SAP Done (CNF)</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- COLLAPSIBLE "+ ADD HANDOVER ENTRY" PANEL -->
+      <div id="handoverAddPanel" class="surface-card hidden p-3 rounded-2xl bg-slate-50 border border-slate-200 task-enter space-y-2.5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-slate-700 text-primary-adaptive">Add Extra Handover Entry</span>
+          <span class="text-[10px] text-slate-400">Adds directly to that day's dot points</span>
+        </div>
+
+        <form id="handoverAddForm" class="space-y-2">
+          <input
+            id="handoverJobInput"
+            type="text"
+            placeholder="Job / Handover item (e.g. Swapped TR013 Cisco repeater PoE injector)..."
+            autocomplete="off"
+            class="surface-input w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs text-slate-800"
+          />
+
+          <textarea
+            id="handoverNotesInput"
+            rows="3"
+            placeholder="Handover notes (e.g. Spare unit taken from sea-container shelf B)..."
+            class="surface-input w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs text-slate-800"
+          ></textarea>
+
+          <div class="grid grid-cols-3 gap-1.5">
+            <div>
+              <label for="handoverEntryDaySelect" class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Day</label>
+              <select
+                id="handoverEntryDaySelect"
+                class="surface-input w-full px-2 py-1.5 rounded-xl border border-slate-300 bg-white text-xs font-bold text-slate-800"
+              ></select>
+            </div>
+
+            <div>
+              <label for="handoverEntryPrioSelect" class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">PM0</label>
+              <select
+                id="handoverEntryPrioSelect"
+                class="surface-input w-full px-2 py-1.5 rounded-xl border border-slate-300 bg-white text-xs font-bold text-slate-800"
+              >
+                <option value="PM03">PM03</option>
+                <option value="PM02" selected>PM02</option>
+                <option value="PM01">PM01</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="handoverEntryLocationInput" class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">📍 Location</label>
+              <input
+                id="handoverEntryLocationInput"
+                type="text"
+                maxlength="20"
+                placeholder="e.g. Pit Rim"
+                class="surface-input w-full px-2 py-1.5 rounded-xl border border-slate-300 bg-white text-xs font-semibold text-slate-800"
+              />
+            </div>
+          </div>
+
+          <p id="handoverInputFeedback" class="text-xs text-rose-600 hidden">Please enter what the job or handover item was.</p>
+
+          <div class="flex items-center justify-end gap-2 pt-1">
+            <button
+              id="cancelHandoverAddBtn"
+              type="button"
+              class="px-3 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs transition"
+            >
+              Cancel
+            </button>
+            <button
+              id="saveHandoverEntryBtn"
+              type="submit"
+              class="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-xs transition"
+            >
+              + Save to Handover
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Day-by-Day Interactive Moveable Cards -->
+      <div id="handoverDaysContainer" class="space-y-3"></div></div>
+
+      <!-- RIGHT COLUMN ON DESKTOP: STICKY LIVE HANDOVER PREVIEW -->
+      <div id="handoverPreviewStickyWrap" class="space-y-3 min-w-0">
+      <div class="pt-2 border-t border-slate-200 space-y-2.5">
+        <div class="flex items-center justify-between flex-wrap gap-1.5">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Handover Preview</span>
+          <div class="flex items-center gap-1 bg-slate-100 p-0.5 rounded-xl border border-slate-200">
+            <button id="previewModeRichBtn" type="button" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white text-slate-800 shadow-2xs">
+              Rich Text
+            </button>
+            <button id="previewModeBasicBtn" type="button" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold text-slate-500">
+              Basic Text
+            </button>
+            <button id="previewModeMdBtn" type="button" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold text-slate-500">
+              Markdown (.md)
+            </button>
+          </div>
+        </div>
+
+        <!-- Rich Text Preview Container -->
+        <div
+          id="handoverRichPreview"
+          class="surface-card p-3.5 rounded-2xl border border-slate-200 bg-white text-xs text-slate-800 space-y-3 max-h-80 overflow-y-auto shadow-inner"
+        ></div>
+
+        <!-- Basic Text / Markdown (.md) Textarea Preview -->
+        <textarea
+          id="handoverPlainText"
+          rows="8"
+          readonly
+          class="surface-input hidden w-full p-3 rounded-2xl border border-slate-200 bg-slate-50 text-xs font-mono text-slate-700 leading-relaxed focus:outline-none"
+        ></textarea>
+
+        <!-- Copy / Export Feedback Banner -->
+        <div id="copyFeedbackBanner" class="hidden p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold text-center">
+          ✓ Saved!
+        </div>
+
+        <!-- COPY, EXPORT & EMAIL BAR -->
+        <div class="space-y-2 pt-1">
+          <div class="grid grid-cols-3 gap-1.5">
+            <button
+              id="copyRichHandoverBtn"
+              type="button"
+              class="py-2 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-[11px] transition flex items-center justify-center gap-1 shadow-2xs"
+            >
+              <span>📋</span><span>Copy Handover</span>
+            </button>
+            <button
+              id="exportRichDocBtn"
+              type="button"
+              class="py-2 px-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[11px] transition flex items-center justify-center gap-1 shadow-2xs"
+            >
+              <span>📄</span><span>Export Rich Doc</span>
+            </button>
+            <button
+              id="exportMdBtn"
+              type="button"
+              class="py-2 px-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-[11px] transition flex items-center justify-center gap-1 shadow-2xs"
+            >
+              <span>⬇️</span><span>Export .MD</span>
+            </button>
+          </div>
+
+          <button
+            id="openEmailHandoverModalBtn"
+            type="button"
+            class="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition flex items-center justify-center gap-2 shadow-xs"
+          >
+            <span>✉️</span><span>Email Handover Report…</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- END OF TUESDAY: START NEW SWING & ARCHIVE -->
+      <div class="p-3.5 rounded-2xl bg-slate-800 text-white space-y-3">
+        <div class="flex items-center justify-between gap-2">
+          <div>
+            <h3 class="text-xs font-bold text-amber-300 uppercase tracking-wider">End of Swing • Start New Swing</h3>
+            <p class="text-[11px] text-slate-300 mt-0.5">Archives handover, auto-saves backup, carries PRI/Follow-Ups, and resets PM01.</p>
+          </div>
+          <button
+            id="openNewSwingConfirmBtn"
+            type="button"
+            class="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shrink-0 transition"
+          >
+            🔄 New Swing
+          </button>
+        </div>
+
+        <div id="newSwingConfirmBox" class="hidden p-3 rounded-xl bg-slate-900 border border-amber-400/50 space-y-2">
+          <p class="text-xs text-amber-200 font-medium">
+            Archive this swing's handover, advance dates +7 days, carry over PRI/open Follow-Ups, and reset PM01 jobs?
+          </p>
+          <div class="flex items-center justify-end gap-2">
+            <button id="cancelNewSwingBtn" type="button" class="px-3 py-1.5 rounded-lg bg-slate-700 text-slate-200 text-xs font-bold">
+              Cancel
+            </button>
+            <button id="confirmNewSwingBtn" type="button" class="px-3 py-1.5 rounded-lg bg-emerald-500 text-slate-950 text-xs font-extrabold">
+              ✓ Archive &amp; Start Wed
+            </button>
+          </div>
+        </div>
+
+        <div id="pastSwingsSection" class="pt-2 border-t border-slate-700">
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-[11px] font-bold text-slate-300 uppercase tracking-wider">📚 Past Swings Archive</span>
+            <span id="archiveCountLabel" class="text-[10px] text-amber-300 font-bold">0 saved</span>
+          </div>
+          <div id="archiveListContainer" class="space-y-1.5 max-h-40 overflow-y-auto"></div>
+        </div>
+      </div>
+      </div>
+      </div>
+    </section>
+
+    <!-- ========================================================= -->
+    <!-- VIEW C: SWING SUMMARY & ANALYTICS DASHBOARD (With Visual Flair!) -->
+    <!-- ========================================================= -->
+    <section id="summaryViewSection" class="surface-section hidden p-3.5 space-y-3.5">
+      <!-- Hero Radial Progress & Hours Booked Card -->
+      <div class="p-4 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-white shadow-xl border border-slate-700 space-y-3">
+        <div class="flex items-center justify-between gap-2">
+          <div>
+            <span id="summarySwingBadge" class="inline-block px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-[10px] font-extrabold uppercase tracking-wider">
+              MN28 Swing Telemetry
+            </span>
+            <h2 class="text-base font-extrabold mt-1 tracking-tight text-white">Swing Status &amp; Hours Booked</h2>
+            <p id="summaryFilterSubtitle" class="text-[11px] text-slate-300">Viewing: MN28 (All Technology)</p>
+          </div>
+
+          <button
+            id="summaryQuickSyncBtn"
+            type="button"
+            class="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs transition shrink-0 shadow"
+          >
+            🔄 Sync Crew
+          </button>
+        </div>
+
+        <!-- Radial Ring + Key KPIs -->
+        <div class="grid grid-cols-3 gap-2.5 items-center pt-1">
+          <!-- Animated SVG Radial Gauge -->
+          <div class="flex flex-col items-center justify-center bg-slate-950/50 rounded-2xl p-2.5 border border-slate-700/80">
+            <div class="relative w-20 h-20 flex items-center justify-center">
+              <svg class="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
+                <circle cx="40" cy="40" r="32" stroke="#1e293b" stroke-width="8" fill="transparent" />
+                <circle
+                  id="summaryProgressRing"
+                  cx="40"
+                  cy="40"
+                  r="32"
+                  stroke="#10b981"
+                  stroke-width="8"
+                  stroke-dasharray="201"
+                  stroke-dashoffset="201"
+                  stroke-linecap="round"
+                  fill="transparent"
+                />
+              </svg>
+              <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+                <span id="summaryCompletionPct" class="text-base font-extrabold text-emerald-400">0%</span>
+                <span class="text-[9px] uppercase tracking-wider text-slate-400 font-bold">Done</span>
+              </div>
+            </div>
+            <p id="summaryJobsRatioText" class="text-[11px] font-bold text-slate-200 mt-1">0 / 0 Jobs</p>
+          </div>
+
+          <!-- Hours Booked vs Allocated KPI Box -->
+          <div class="col-span-2 bg-slate-950/50 rounded-2xl p-3 border border-slate-700/80 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-extrabold uppercase tracking-wider text-amber-300">⏱️ Hours Booked vs Allocated</span>
+              <span id="summaryHoursPctBadge" class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300">0%</span>
+            </div>
+
+            <div class="flex items-baseline justify-between gap-2">
+              <div>
+                <span id="summaryActualHoursBig" class="text-2xl font-extrabold text-white">0.0h</span>
+                <span class="text-[11px] text-slate-400 font-semibold">booked</span>
+              </div>
+              <div class="text-right">
+                <span id="summaryAllocatedHoursText" class="text-xs font-bold text-slate-300">/ 0.0h allocated</span>
+                <p id="summaryRemainingHoursText" class="text-[10px] text-emerald-400 font-semibold">0.0h remaining on open jobs</p>
+              </div>
+            </div>
+
+            <!-- Dual Progress Bar -->
+            <div class="w-full h-2.5 rounded-full bg-slate-800 overflow-hidden">
+              <div id="summaryHoursProgressBar" class="h-full bg-gradient-to-r from-amber-400 to-emerald-400 rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Tap Action Radar Tiles (Tap any tile to jump to those tasks!) -->
+      <div class="grid grid-cols-3 gap-2">
+        <button
+          id="summaryTileOpenBtn"
+          type="button"
+          class="surface-card p-2.5 rounded-2xl border border-slate-200 bg-white hover:border-amber-400 text-left transition"
+        >
+          <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Open Jobs</span>
+          <span id="summaryTileOpenCount" class="text-lg font-extrabold text-slate-800 text-primary-adaptive">0</span>
+          <span class="text-[10px] text-amber-600 font-semibold block">Tap to view ›</span>
+        </button>
+
+        <button
+          id="summaryTilePriBtn"
+          type="button"
+          class="surface-card p-2.5 rounded-2xl border border-rose-200 bg-rose-50/50 hover:border-rose-400 text-left transition"
+        >
+          <span class="text-[10px] font-extrabold uppercase tracking-wider text-rose-700 block">PRI Blocked</span>
+          <span id="summaryTilePriCount" class="text-lg font-extrabold text-rose-700">0</span>
+          <span class="text-[10px] text-rose-600 font-semibold block">Reschedule ›</span>
+        </button>
+
+        <button
+          id="summaryTileFollowUpBtn"
+          type="button"
+          class="surface-card p-2.5 rounded-2xl border border-amber-200 bg-amber-50/50 hover:border-amber-400 text-left transition"
+        >
+          <span class="text-[10px] font-extrabold uppercase tracking-wider text-amber-800 block">Follow-Ups</span>
+          <span id="summaryTileFollowUpCount" class="text-lg font-extrabold text-amber-900">0</span>
+          <span class="text-[10px] text-amber-700 font-semibold block">Track ›</span>
+        </button>
+      </div>
+
+      <!-- Day-by-Day Workload & Hours Mini Chart (Wed – Tue) -->
+      <div class="surface-card p-3.5 rounded-2xl border border-slate-200 bg-slate-50/70 space-y-2.5">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xs font-extrabold uppercase tracking-wider text-slate-700 text-primary-adaptive">📅 Daily Swing Load &amp; Hours (Tap Day to Open)</h3>
+          <span class="text-[10px] text-slate-400 font-semibold">Done vs Open</span>
+        </div>
+        <div id="summaryDailyChartGrid" class="grid grid-cols-7 gap-1.5 pt-1"></div>
+      </div>
+
+      <!-- Prominent Actual Hours Booked for Week Card (No role breakdown!) -->
+      <div class="surface-card p-4 rounded-3xl border border-slate-200 bg-white space-y-3 shadow-sm">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">⏱️</span>
+            <div>
+              <h3 class="text-xs font-extrabold uppercase tracking-wider text-slate-800 text-primary-adaptive">Total Actual Hours Booked This Week</h3>
+              <p class="text-[11px] text-slate-400">Aggregated actual hours across completed &amp; active jobs</p>
+            </div>
+          </div>
+          <span id="summaryTotalActualHrsBadge" class="text-base font-extrabold font-mono text-emerald-600 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-xl">
+            0.0h
+          </span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 pt-1">
+          <div class="p-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-center">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Completed Jobs Booked</span>
+            <span id="summaryCompletedActualHrs" class="text-sm font-extrabold text-slate-800 text-primary-adaptive">0.0h</span>
+          </div>
+          <div class="p-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-center">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Active Jobs Booked</span>
+            <span id="summaryActiveActualHrs" class="text-sm font-extrabold text-amber-700">0.0h</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Priority (PM01/PM02/PM03) & Top Asset Tags Breakdown -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+        <div class="surface-card p-3.5 rounded-2xl border border-slate-200 bg-slate-50/70 space-y-2">
+          <h3 class="text-xs font-extrabold uppercase tracking-wider text-slate-700 text-primary-adaptive">⚡ Order Type (PM0) Split</h3>
+          <div id="summaryPrioBreakdown" class="space-y-1.5 text-xs"></div>
+        </div>
+
+        <div class="surface-card p-3.5 rounded-2xl border border-slate-200 bg-slate-50/70 space-y-2">
+          <h3 class="text-xs font-extrabold uppercase tracking-wider text-slate-700 text-primary-adaptive">🏷️ Top Asset Categories</h3>
+          <div id="summaryTagsBreakdown" class="space-y-1.5 text-xs"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================= -->
+    iv>
 
     <!-- ========================================================= -->
     <!-- SUB-WINDOW 1: PRIORITY / ORDER # / NOTIF # / LOCATION / FUNCTIONAL LOC / ROLE / TAGS EDITOR -->
@@ -2099,6 +2234,15 @@
                   <option value="sm">Compact (Small)</option>
                   <option value="md" selected>Default (Medium)</option>
                   <option value="lg">Large (Site Gloves)</option>
+                </select>
+              </div>
+
+              <div>
+                <label for="settingDesktopModeSelect" class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">🖥️ Layout Mode</label>
+                <select id="settingDesktopModeSelect" class="surface-input w-full px-2.5 py-1.5 rounded-xl border border-slate-300 bg-white font-bold text-slate-800">
+                  <option value="auto" selected>Auto (Screen Width)</option>
+                  <option value="desktop">Wide Desktop (Dual-Pane)</option>
+                  <option value="mobile">Phone Card (512px)</option>
                 </select>
               </div>
 
@@ -3656,6 +3800,7 @@
       darkMode: false,
       textSize: 'md',
       headerTheme: 'slate',
+      desktopMode: 'auto', // 'auto', 'desktop', 'mobile'
       animationsEnabled: true,
       confettiEnabled: true,
       soundEnabled: true,
@@ -3868,7 +4013,56 @@
       };
     }
 
+    function isDesktopLayoutActive() {
+      const mode = appSettings.desktopMode || 'auto';
+      if (mode === 'desktop') return true;
+      if (mode === 'mobile') return false;
+      return window.innerWidth >= 1024;
+    }
+
+    function applyDesktopMode() {
+      const active = isDesktopLayoutActive();
+      document.body.classList.toggle('desktop-mode', active);
+      const icon = document.getElementById('desktopModeIcon');
+      if (icon) {
+        icon.textContent = active ? '🖥️' : '📱';
+        icon.title = active
+          ? 'Desktop Mode Active (Click to switch to Mobile Phone Card)'
+          : 'Mobile Card Active (Click to switch to Desktop Wide Mode)';
+      }
+      const toggleBtn = document.getElementById('toggleDesktopModeBtn');
+      if (toggleBtn) {
+        toggleBtn.classList.toggle('border-amber-400/60', active);
+        toggleBtn.classList.toggle('bg-amber-500/20', active);
+        toggleBtn.classList.toggle('text-amber-300', active);
+      }
+      const closeBtn = document.getElementById('closeDetailBtn');
+      if (closeBtn) {
+        closeBtn.innerHTML = active
+          ? '<span>✕</span><span>Deselect</span>'
+          : '<span>←</span><span>Back</span>';
+      }
+      const sel = document.getElementById('settingDesktopModeSelect');
+      if (sel && sel.value !== (appSettings.desktopMode || 'auto')) {
+        sel.value = appSettings.desktopMode || 'auto';
+      }
+    }
+
+    function highlightActiveTaskInList(id) {
+      if (!taskListEl) return;
+      const cards = taskListEl.querySelectorAll('li[data-task-id]');
+      cards.forEach(card => {
+        const cId = Number(card.getAttribute('data-task-id'));
+        if (id && cId === id && isDesktopLayoutActive()) {
+          card.classList.add('ring-2', 'ring-amber-500', 'border-amber-500', 'bg-amber-50/50');
+        } else {
+          card.classList.remove('ring-2', 'ring-amber-500', 'border-amber-500', 'bg-amber-50/50');
+        }
+      });
+    }
+
     function applyVisualSettings() {
+      applyDesktopMode();
       document.body.classList.toggle('anim-enabled', Boolean(appSettings.animationsEnabled));
       document.body.classList.toggle('dark-mode', Boolean(appSettings.darkMode));
       const scaleCls = `text-scale-${appSettings.textSize || 'md'}`;
@@ -5530,6 +5724,25 @@
 
       clearSearchBtnEl.classList.toggle('hidden', !searchQuery.trim());
 
+      // Sync desktop inspector state
+      if (isDesktopLayoutActive()) {
+        const placeholder = document.getElementById('desktopInspectorPlaceholder');
+        if (activeDetailTaskId && allVisible.some(t => t.id === activeDetailTaskId)) {
+          taskDetailModalEl.classList.remove('hidden');
+          if (placeholder) placeholder.classList.add('hidden');
+          renderTaskDetail(activeDetailTaskId);
+        } else if (allVisible.length > 0) {
+          activeDetailTaskId = allVisible[0].id;
+          taskDetailModalEl.classList.remove('hidden');
+          if (placeholder) placeholder.classList.add('hidden');
+          renderTaskDetail(activeDetailTaskId);
+        } else {
+          activeDetailTaskId = null;
+          taskDetailModalEl.classList.add('hidden');
+          if (placeholder) placeholder.classList.remove('hidden');
+        }
+      }
+
       taskListEl.innerHTML = '';
       if (total === 0) {
         emptyStateEl.classList.remove('hidden');
@@ -5551,14 +5764,18 @@
         const isJustCompleted = recentlyCompletedId === task.id && task.completed;
 
         const li = document.createElement('li');
+        li.setAttribute('data-task-id', task.id);
+        const isSelectedInDesktop = isDesktopLayoutActive() && activeDetailTaskId === task.id;
         li.className = `${isJustCompleted ? 'completed-pop ring-2 ring-emerald-400 bg-emerald-50/70' : 'task-enter'} surface-card rounded-2xl border p-3 transition flex items-center justify-between gap-3 cursor-pointer select-none ${
-          task.completed
-            ? 'bg-emerald-50/30 border-emerald-200/80 text-slate-500'
-            : task.isBlockedPri
-              ? 'bg-rose-50/50 border-rose-400 shadow-xs'
-              : task.priority === 'PM03'
-                ? 'bg-rose-50/30 border-rose-300 shadow-xs'
-                : 'bg-white border-slate-200 hover:border-amber-400 shadow-xs'
+          isSelectedInDesktop
+            ? 'ring-2 ring-amber-500 border-amber-500 bg-amber-50/50'
+            : task.completed
+              ? 'bg-emerald-50/30 border-emerald-200/80 text-slate-500'
+              : task.isBlockedPri
+                ? 'bg-rose-50/50 border-rose-400 shadow-xs'
+                : task.priority === 'PM03'
+                  ? 'bg-rose-50/30 border-rose-300 shadow-xs'
+                  : 'bg-white border-slate-200 hover:border-amber-400 shadow-xs'
         }`;
         li.addEventListener('click', () => openTaskDetail(task.id));
 
@@ -6056,7 +6273,10 @@
     function openTaskDetail(id) {
       activeDetailTaskId = id;
       taskDetailModalEl.classList.remove('hidden');
+      const placeholder = document.getElementById('desktopInspectorPlaceholder');
+      if (placeholder) placeholder.classList.add('hidden');
       renderTaskDetail(id);
+      highlightActiveTaskInList(id);
     }
 
     function closeTaskDetail() {
@@ -6064,6 +6284,11 @@
       taskDetailModalEl.classList.add('hidden');
       metaEditorModalEl.classList.add('hidden');
       attachmentsModalEl.classList.add('hidden');
+      const placeholder = document.getElementById('desktopInspectorPlaceholder');
+      if (isDesktopLayoutActive() && placeholder) {
+        placeholder.classList.remove('hidden');
+      }
+      highlightActiveTaskInList(null);
       renderTasks();
     }
 
@@ -8715,6 +8940,76 @@
     syncHandoverScopeUi();
     updateBonusCountdown();
     renderTasks();
+
+    // Desktop Dual-Pane & Keyboard Navigation
+    window.addEventListener('resize', () => {
+      if (!appSettings.desktopMode || appSettings.desktopMode === 'auto') {
+        applyDesktopMode();
+        if (activeMainView === 'tasks') renderTasks();
+      }
+    });
+
+    const toggleDesktopModeBtnEl = document.getElementById('toggleDesktopModeBtn');
+    if (toggleDesktopModeBtnEl) {
+      toggleDesktopModeBtnEl.addEventListener('click', () => {
+        const currentActive = isDesktopLayoutActive();
+        appSettings.desktopMode = currentActive ? 'mobile' : 'desktop';
+        applyDesktopMode();
+        saveState(appSettings.desktopMode === 'desktop' ? 'Desktop Mode' : 'Mobile Mode');
+        renderTasks();
+      });
+    }
+
+    const settingDesktopModeSelectEl = document.getElementById('settingDesktopModeSelect');
+    if (settingDesktopModeSelectEl) {
+      settingDesktopModeSelectEl.addEventListener('change', (e) => {
+        appSettings.desktopMode = e.target.value;
+        applyDesktopMode();
+        saveState();
+        renderTasks();
+      });
+    }
+
+    // Desktop Keyboard Navigation Shortcuts (Arrow keys to navigate tasks, 1-7 for days)
+    window.addEventListener('keydown', (e) => {
+      const tag = (e.target.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') {
+        if (e.key === 'Escape' && activeDetailTaskId && isDesktopLayoutActive()) {
+          e.target.blur();
+        }
+        return;
+      }
+
+      if (e.key === 'Escape') {
+        if (activeDetailTaskId && isDesktopLayoutActive()) {
+          closeTaskDetail();
+        }
+        return;
+      }
+
+      if (!isDesktopLayoutActive() || activeMainView !== 'tasks') return;
+
+      const visible = getTasksForDay(selectedViewDay, activeTagFilter, searchQuery);
+      if (visible.length === 0) return;
+
+      if (e.key === 'ArrowDown' || e.key === 'j') {
+        e.preventDefault();
+        const curIdx = visible.findIndex(t => t.id === activeDetailTaskId);
+        const nextIdx = curIdx < visible.length - 1 ? curIdx + 1 : 0;
+        openTaskDetail(visible[nextIdx].id);
+      } else if (e.key === 'ArrowUp' || e.key === 'k') {
+        e.preventDefault();
+        const curIdx = visible.findIndex(t => t.id === activeDetailTaskId);
+        const prevIdx = curIdx > 0 ? curIdx - 1 : visible.length - 1;
+        openTaskDetail(visible[prevIdx].id);
+      } else if (e.key >= '1' && e.key <= '7') {
+        const dayNum = parseInt(e.key, 10);
+        const total = getTotalSwingDays();
+        if (dayNum <= total) {
+          selectDay(dayNum);
+        }
+      }
+    });
   </script>
 </body>
 </html>
